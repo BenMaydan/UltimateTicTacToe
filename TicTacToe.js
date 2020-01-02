@@ -3,20 +3,53 @@ var grid = [[], [], []];
 var p0n;
 var p1n;
 var p2n;
-var sBetween = 15;
+let sBetween = 15;
 
-var white;
-var red;
-var green;
-var blue;
-var black;
+let white;
+let red;
+let green;
+let blue;
+let black;
 
 var tie;
 var gameOver;
 var overallWinner;
 
+var onMenu = true;
+var otherPlayer = "";
+let menu;
+let undo;
+let resume;
+let newGameHH;
+let newGameHC;
+var gameStates = [];
+
 function setup() {
-  resizeCanvas(windowWidth, windowHeight, true);
+  let cnv = createCanvas(windowWidth, windowHeight);
+  cnv.mousePressed(cnvMousePressed);
+  
+  menu = createButton("Menu");
+  menu.position(10, 10);
+  menu.mousePressed(goToMenu);
+  undo = createButton("Undo");
+  undo.position(70, 10);
+  undo.mousePressed(revertGameState);
+  menu.hide();
+  undo.hide();
+  
+  resume = createButton("Resume Game");
+  resume.position(width/2, height/2-10);
+  resume.center("horizontal");
+  //resume.mousePressed(resumeLastGame);
+  newGameHH = createButton("New Game {Human:Human}");
+  newGameHH.position(width/2, height/2+10);
+  newGameHH.center("horizontal");
+  newGameHH.mousePressed(createNewGameHH);
+  //newGameHC = createButton("New Game {Human:Human}");
+  //newGameHC.position(width/2, height/2+10);
+  //newGameHC.center("horizontal");
+  //newGameHC.mousePressed(resetGame);
+  
   
   textSize(32);
   textAlign(CENTER, TOP);
@@ -36,9 +69,9 @@ function setup() {
   
   tie = false;
   gameOver = false;
-  overallWinner= -1;
+  overallWinner = -1;
   
-  var w = width/6;
+  var w = width/5;
   var h = height/4;
   var x = width/2-w-(w/2)-sBetween;
   var y = height/2-h-(h/2)+30-(sBetween*2);
@@ -52,46 +85,44 @@ function setup() {
   }
 }
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
 function keyPressed() {
   if (key == 'e' || keyCode == ESC)
     fullscreen(!fullscreen());
 }
 
-function mousePressed() {
-  if (!gameOver) {
+function cnvMousePressed() {
+  if (!gameOver)
     for (var i = 0; i < grid.length; i++)
-      for (var ii = 0; ii < grid[i].length; ii++) {
+      for (var ii = 0; ii < grid[i].length; ii++)
         grid[i][ii].checkTouch();
-      }
-  }
   checkForTie();
   return false;
 }
 
 function draw() {
   background(255);
-  for (var i = 0; i < grid.length; i++)
-    for (var ii = 0; ii < grid[i].length; ii++)
-      grid[i][ii].show();
-      
-  // Check for overall win
-  var weg = checkOverallWin();
-  if (weg[0]) {
-    gameOver = true;
-    overallWinner = weg[1];
+  if (!onMenu) {
+    for (var i = 0; i < grid.length; i++)
+      for (var ii = 0; ii < grid[i].length; ii++)
+        grid[i][ii].show();
+
+    var weg = checkOverallWin();
+    if (weg[0]) {
+      gameOver = true;
+      overallWinner = weg[1];
+    }
+    
+    fill(0);
+    if (!gameOver)   text((moves%2 == 0 ? "Green's" : "Red's") + " turn", width/2, 10);
+    if (gameOver)    text("GAME OVER! " + (overallWinner == p1n ? "Green" : "Red") + " won!", width/2, 10);
+    if (tie)         text("GAME OVER! Neither player won!", width/2, 10);
   }
-  
-  fill(0);
-  if (!gameOver)
-    text((moves%2 == 0 ? "Green's" : "Red's") + " turn", width/2, 10);
-  if (gameOver) {
-    text("GAME OVER! " + (overallWinner == p1n ? "Green" : "Red") + " won!", width/2, 10);
-    noLoop();
-  }
-  if (tie) {
-    text("GAME OVER! Neither player won!", width/2, 10);
-    noLoop();
-  }
+  else
+    text("Ultimate Tic Tac Toe", width/2, 10);
 }
 
 
@@ -120,6 +151,22 @@ class Grid {
     this.gcw = w2;
     return this;
   }
+  setSelected(onOff) {
+    this.selected = onOff;
+    return this;
+  }
+  
+  deepCopy() {
+    let ng = new Grid(this.x, this.y, this.w, this.h).setColor(this.bc, this.gc).setStrokeWidth(this.bcw, this.gcw).setSelected(this.selected);
+    var nmg = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (var img = 0; img < this.mg.length; img++)
+      for (var iimg = 0; iimg < this.mg[img].length; iimg++)
+        nmg[img][iimg] = this.mg[img][iimg];
+    ng.mg = nmg;
+    ng.winner = this.winner;
+    ng.won = this.won;
+    return ng;
+  }
   
   checkWin() {
     var wnr = -1;
@@ -145,7 +192,6 @@ class Grid {
       this.selected = false;
       return true;
     }
-    
     return false;
   }
   
@@ -156,6 +202,13 @@ class Grid {
       for (var i = 0; i < 3; i++) {
         for (var ii = 0; ii < 3; ii++) {
           if (this.mg[i][ii] == p0n && mouseX > nx && mouseX < nx+this.w/3 && mouseY > ny && mouseY < ny+this.h/3) {
+            // Deep copy new grid
+            var ngrid = [[], [], []];
+            for (var ig = 0; ig < grid.length; ig++)
+              for (var iig = 0; iig < grid[ig].length; iig++)
+                ngrid[ig].push(grid[ig][iig].deepCopy());
+            gameStates.push([ngrid, moves]);
+            // End deep copy new grid
             this.mg[i][ii] = (++moves%2 == 0 ? p2n : p1n);
             this.checkWin();
             changeSelected(i, ii);
@@ -203,6 +256,42 @@ class Grid {
 
 
 
+function hideMenuShowGameElements() { resume.hide(); newGameHH.hide(); /*newGameHC.hide();*/ menu.show(); undo.show(); }
+function showMenuHideGameElements() { resume.show(); newGameHH.show(); /*newGameHC.show();*/ menu.hide(); undo.hide(); }
+function createNewGameHH()  { otherPlayer = "human";    onMenu = false; hideMenuShowGameElements(); }
+function createNewGameHC()  { otherPlayer = "computer"; onMenu = false; hideMenuShowGameElements(); }
+
+function goToMenu() {
+  // TODO Store current game
+  onMenu = true;
+  showMenuHideGameElements();
+  moves = 0;
+  grid = [[], [], []];
+  var w = width/5;
+  var h = height/4;
+  var x = width/2-w-(w/2)-sBetween;
+  var y = height/2-h-(h/2)+30-(sBetween*2);
+  for (var i = 0; i < 3; i++) {
+    for (var ii = 0; ii < 3; ii++) {
+      grid[i].push(new Grid(x, y, w, h).setColor(blue, blue).setStrokeWidth(5, 5));
+      x += w+sBetween;
+    }
+    x = width/2-w-(w/2)-sBetween;
+    y += h+sBetween;
+  }
+  tie = false;
+  gameOver = false;
+  overallWinner = -1;
+}
+
+function revertGameState() {
+  if (gameStates.length > 0) {
+    grid = gameStates[gameStates.length-1][0];
+    moves = gameStates[gameStates.length-1][1];
+    gameStates.pop();
+  }
+}
+
 function checkForTie() {
   for (var i = 0; i < grid.length; i++)
     for (var ii = 0; ii < grid[i].length; ii++)
@@ -249,10 +338,5 @@ function changeSelected(ni1, ni2) {
   }
 }
 
-function eqFlag(originalValue, a, b, c) {
-  return (a.winner != p0n && a.winner == b.winner && b.winner == c.winner) ? a.winner : originalValue;
-}
-
-function eq(originalValue, a, b, c) {
-  return (a != p0n && a == b && b == c) ? a : originalValue;
-}
+function eqFlag(originalValue, a, b, c) { return (a.winner != p0n && a.winner == b.winner && b.winner == c.winner) ? a.winner : originalValue; }
+function eq(originalValue, a, b, c) { return (a != p0n && a == b && b == c) ? a : originalValue; }
