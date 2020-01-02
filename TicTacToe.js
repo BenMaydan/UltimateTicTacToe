@@ -40,7 +40,7 @@ function setup() {
   resume = createButton("Resume Game");
   resume.position(width/2, height/2-10);
   resume.center("horizontal");
-  //resume.mousePressed(resumeLastGame);
+  resume.mousePressed(resumeGame);
   newGameHH = createButton("New Game {Human:Human}");
   newGameHH.position(width/2, height/2+10);
   newGameHH.center("horizontal");
@@ -95,10 +95,12 @@ function keyPressed() {
 }
 
 function cnvMousePressed() {
-  if (!gameOver)
+  if (!gameOver) {
     for (var i = 0; i < grid.length; i++)
-      for (var ii = 0; ii < grid[i].length; ii++)
+      for (var ii = 0; ii < grid[i].length; ii++) {
         grid[i][ii].checkTouch();
+      }
+  }
   checkForTie();
   return false;
 }
@@ -109,17 +111,15 @@ function draw() {
     for (var i = 0; i < grid.length; i++)
       for (var ii = 0; ii < grid[i].length; ii++)
         grid[i][ii].show();
-
-    var weg = checkOverallWin();
-    if (weg[0]) {
-      gameOver = true;
-      overallWinner = weg[1];
-    }
     
     fill(0);
-    if (!gameOver)   text((moves%2 == 0 ? "Green's" : "Red's") + " turn", width/2, 10);
-    if (gameOver)    text("GAME OVER! " + (overallWinner == p1n ? "Green" : "Red") + " won!", width/2, 10);
-    if (tie)         text("GAME OVER! Neither player won!", width/2, 10);
+    if (tie) {
+      text("GAME OVER! Neither player won!", width/2, 10);
+    } if (gameOver) {
+      text("GAME OVER! " + (overallWinner == p1n ? "Green" : "Red") + " won!", width/2, 10);
+    } else {
+      text((moves%2 == 0 ? "Green's" : "Red's") + " turn", width/2, 10);
+    }
   }
   else
     text("Ultimate Tic Tac Toe", width/2, 10);
@@ -211,6 +211,7 @@ class Grid {
             // End deep copy new grid
             this.mg[i][ii] = (++moves%2 == 0 ? p2n : p1n);
             this.checkWin();
+            checkOverallWin();
             changeSelected(i, ii);
             return;
           }
@@ -261,9 +262,19 @@ function showMenuHideGameElements() { resume.show(); newGameHH.show(); /*newGame
 function createNewGameHH()  { otherPlayer = "human";    onMenu = false; hideMenuShowGameElements(); }
 function createNewGameHC()  { otherPlayer = "computer"; onMenu = false; hideMenuShowGameElements(); }
 
+function saveGame() {
+  let grid_json_string = JSON.stringify();
+  let gameDict = createStringDict({"moves":moves, "grid_json_string":grid_json_string, "tie":tie, "gameOver":gameOver, "overallWinner":overallWinner});
+}
+
+function resumeGame() {
+  
+}
+
 function goToMenu() {
   // TODO Store current game
   onMenu = true;
+  saveGame();
   showMenuHideGameElements();
   moves = 0;
   grid = [[], [], []];
@@ -311,32 +322,37 @@ function checkOverallWin() {
   wnr = eqFlag(wnr, grid[0][2], grid[1][2], grid[2][2]);
   wnr = eqFlag(wnr, grid[0][0], grid[1][1], grid[2][2]);
   wnr = eqFlag(wnr, grid[0][2], grid[1][1], grid[2][0]);
-  return [wnr == p1n || wnr == p2n, wnr];
+  if (wnr == p1n || wnr == p2n) {
+    gameOver = true;
+    overallWinner = wnr;
+  }
 }
 
 function changeSelected(ni1, ni2) {
-  // First change every mini-grid already selected to unselected
-  for (var i1 = 0; i1 < grid.length; i1++)
-    for (var i2 = 0; i2 < grid[i1].length; i2++)
-      if (grid[i1][i2].selected) {
-        grid[i1][i2].selected = false;
-        grid[i1][i2].setColor(gray, gray);
-      }
-
-  var ng = grid[ni1][ni2];
-  if (ng.won == false) {
-    ng.selected = true;
-    ng.setColor(blue, blue);
-  }
-  else if (ng.won) {
+  if (!gameOver) {
+    // First change every mini-grid already selected to unselected
     for (var i1 = 0; i1 < grid.length; i1++)
       for (var i2 = 0; i2 < grid[i1].length; i2++)
-        if (!grid[i1][i2].won) {
-          grid[i1][i2].selected = true;
-          grid[i1][i2].setColor(blue, blue);
+        if (grid[i1][i2].selected) {
+          grid[i1][i2].selected = false;
+          grid[i1][i2].setColor(gray, gray);
         }
+  
+    var ng = grid[ni1][ni2];
+    if (ng.won == false) {
+      ng.selected = true;
+      ng.setColor(blue, blue);
+    }
+    else if (ng.won) {
+      for (var i1 = 0; i1 < grid.length; i1++)
+        for (var i2 = 0; i2 < grid[i1].length; i2++)
+          if (!grid[i1][i2].won) {
+            grid[i1][i2].selected = true;
+            grid[i1][i2].setColor(blue, blue);
+          }
+    }
   }
 }
 
-function eqFlag(originalValue, a, b, c) { return (a.winner != p0n && a.winner == b.winner && b.winner == c.winner) ? a.winner : originalValue; }
+function eqFlag(originalValue, a, b, c) { return (a.winner != p0n && a.won && b.won && c.won && a.winner == b.winner && b.winner == c.winner) ? a.winner : originalValue; }
 function eq(originalValue, a, b, c) { return (a != p0n && a == b && b == c) ? a : originalValue; }
