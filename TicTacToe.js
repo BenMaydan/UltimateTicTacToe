@@ -27,6 +27,7 @@ var gameStates = [];
 function setup() {
   let cnv = createCanvas(windowWidth, windowHeight);
   cnv.mousePressed(cnvMousePressed);
+  window.addEventListener('beforeunload', function() { if (!onMenu) saveGame(); } );
   
   menu = createButton("Menu");
   menu.position(10, 10);
@@ -45,10 +46,10 @@ function setup() {
   newGameHH.position(width/2, height/2+10);
   newGameHH.center("horizontal");
   newGameHH.mousePressed(createNewGameHH);
-  //newGameHC = createButton("New Game {Human:Human}");
-  //newGameHC.position(width/2, height/2+10);
-  //newGameHC.center("horizontal");
-  //newGameHC.mousePressed(resetGame);
+  newGameHC = createButton("New Game {Human:Computer}");
+  newGameHC.position(width/2, height/2+30);
+  newGameHC.center("horizontal");
+  newGameHC.mousePressed(createNewGameHC);
   
   
   textSize(32);
@@ -106,6 +107,9 @@ function windowResized() {
   resume.center("horizontal");
   newGameHH.position(width/2, height/2+10);
   newGameHH.center("horizontal");
+  newGameHC.position(width/2, height/2+30);
+  newGameHC.center("horizontal");
+  redraw();
 }
 
 function keyPressed() {
@@ -287,13 +291,12 @@ class Grid {
 
 
 
-function hideMenuShowGameElements() { resume.hide(); newGameHH.hide(); /*newGameHC.hide();*/ menu.show(); undo.show(); }
-function showMenuHideGameElements() { resume.show(); newGameHH.show(); /*newGameHC.show();*/ menu.hide(); undo.hide(); }
+function hideMenuShowGameElements() { resume.hide(); newGameHH.hide(); newGameHC.hide(); menu.show(); undo.show(); }
+function showMenuHideGameElements() { resume.show(); newGameHH.show(); newGameHC.show(); menu.hide(); undo.hide(); }
 function createNewGameHH()  { clearStorage(); otherPlayer = "human";    onMenu = false; hideMenuShowGameElements(); }
 function createNewGameHC()  { clearStorage(); otherPlayer = "computer"; onMenu = false; hideMenuShowGameElements(); }
 
 function saveGame() {
-  clearStorage();
   storeItem("appState", {"gameStates":JSON.stringify(gameStates), "moves":moves, "grid":JSON.stringify(grid), "tie":tie, "gameOver":gameOver, "overallWinner":overallWinner});
 }
 
@@ -317,8 +320,9 @@ function resumeGame() {
 }
 
 function goToMenu() {
-  saveGame();
   onMenu = true;
+  clearStorage();
+  saveGame();
   showMenuHideGameElements();
   moves = 0;
   grid = [[], [], []];
