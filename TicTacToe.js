@@ -87,6 +87,25 @@ function setup() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  var w = width/5;
+  var h = height/4;
+  var x = width/2-w-(w/2)-sBetween;
+  var y = height/2-h-(h/2)+30-(sBetween*2);
+  for (var i = 0; i < 3; i++) {
+    for (var ii = 0; ii < 3; ii++) {
+      grid[i][ii].w = w;
+      grid[i][ii].h = h;
+      grid[i][ii].x = x;
+      grid[i][ii].y = y;
+      x += w+sBetween;
+    }
+    x = width/2-w-(w/2)-sBetween;
+    y += h+sBetween;
+  }
+  resume.position(width/2, height/2-10);
+  resume.center("horizontal");
+  newGameHH.position(width/2, height/2+10);
+  newGameHH.center("horizontal");
 }
 
 function keyPressed() {
@@ -101,9 +120,8 @@ function keyPressed() {
 function cnvMousePressed() {
   if (!gameOver) {
     for (var i = 0; i < grid.length; i++)
-      for (var ii = 0; ii < grid[i].length; ii++) {
+      for (var ii = 0; ii < grid[i].length; ii++)
         grid[i][ii].checkTouch();
-      }
   }
   checkForTie();
   return false;
