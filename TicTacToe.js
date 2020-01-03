@@ -90,8 +90,12 @@ function windowResized() {
 }
 
 function keyPressed() {
-  if (key == 'e' || keyCode == ESC)
+  if (key == 'e' || (typeof ESC != 'undefined' && keyCode == ESC))
     fullscreen(!fullscreen());
+  if (key == 'u')
+    undoGameState();
+  if (key == 'm')
+    goToMenu();
 }
 
 function cnvMousePressed() {
