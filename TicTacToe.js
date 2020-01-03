@@ -299,6 +299,7 @@ function undoGameState() {
   if (gameStates.length > 0) {
     grid = gameStates[gameStates.length-1][0];
     moves = gameStates[gameStates.length-1][1];
+    gameStates.pop();
     if (gameOver || tie) {
       gameOver = false;
       tie = false;
