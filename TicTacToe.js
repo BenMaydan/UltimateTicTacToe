@@ -160,6 +160,14 @@ class Grid {
     return this;
   }
   
+  static deStringify(jo) {
+    let ng = new Grid(jo.x, jo.y, jo.w, jo.h).setColor(jo.bc, jo.gc).setStrokeWidth(jo.bcw, jo.gcw).setSelected(jo.selected);
+    ng.mg = jo.mg;
+    ng.winner = jo.winner;
+    ng.won = jo.won;
+    return ng;
+  }
+  
   deepCopy() {
     let ng = new Grid(this.x, this.y, this.w, this.h).setColor(this.bc, this.gc).setStrokeWidth(this.bcw, this.gcw).setSelected(this.selected);
     var nmg = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
@@ -230,8 +238,8 @@ class Grid {
   show() {    
     noStroke();
     var rc = white;
-    for (var i = 0; i < 3; i++)
-      for (var ii = 0; ii < 3; ii++)
+    for (var i = 0; i < this.mg.length; i++)
+      for (var ii = 0; ii < this.mg[i].length; ii++)
         if (this.mg[i][ii] != p0n) {
           if (this.mg[i][ii] == p1n) { rc = green; }
           if (this.mg[i][ii] == p2n) { rc = red;   }
@@ -263,22 +271,36 @@ class Grid {
 
 function hideMenuShowGameElements() { resume.hide(); newGameHH.hide(); /*newGameHC.hide();*/ menu.show(); undo.show(); }
 function showMenuHideGameElements() { resume.show(); newGameHH.show(); /*newGameHC.show();*/ menu.hide(); undo.hide(); }
-function createNewGameHH()  { otherPlayer = "human";    onMenu = false; hideMenuShowGameElements(); }
-function createNewGameHC()  { otherPlayer = "computer"; onMenu = false; hideMenuShowGameElements(); }
+function createNewGameHH()  { clearStorage(); otherPlayer = "human";    onMenu = false; hideMenuShowGameElements(); }
+function createNewGameHC()  { clearStorage(); otherPlayer = "computer"; onMenu = false; hideMenuShowGameElements(); }
 
 function saveGame() {
-  let grid_json_string = JSON.stringify();
-  let gameDict = createStringDict({"moves":moves, "grid_json_string":grid_json_string, "tie":tie, "gameOver":gameOver, "overallWinner":overallWinner});
+  clearStorage();
+  storeItem("appState", {"gameStates":JSON.stringify(gameStates), "moves":moves, "grid":JSON.stringify(grid), "tie":tie, "gameOver":gameOver, "overallWinner":overallWinner});
 }
 
 function resumeGame() {
-  
+  let appState = getItem("appState");
+  moves = appState.moves;
+  tie = appState.tie;
+  gameOver = appState.gameOver;
+  overallWinner = appState.overallWinner;
+  grid = JSON.parse(appState.grid);
+  for (var i = 0; i < 3; i++)
+    for (var ii = 0; ii < 3; ii++)
+      grid[i][ii] = Grid.deStringify(grid[i][ii]);
+  gameStates = JSON.parse(appState.gameStates);
+  for (var gi = 0; gi < gameStates.length; gi++)
+    for (var i = 0; i < gameStates[gi][0].length; i++)
+      for (var ii = 0; ii < gameStates[gi][0][i].length; ii++)
+        gameStates[gi][0][i][ii] = Grid.deStringify(gameStates[gi][0][i][ii]);
+  onMenu = false;
+  hideMenuShowGameElements();
 }
 
 function goToMenu() {
-  // TODO Store current game
-  onMenu = true;
   saveGame();
+  onMenu = true;
   showMenuHideGameElements();
   moves = 0;
   grid = [[], [], []];
@@ -353,12 +375,14 @@ function changeSelected(ni1, ni2) {
       ng.setColor(blue, blue);
     }
     else if (ng.won) {
-      for (var i1 = 0; i1 < grid.length; i1++)
-        for (var i2 = 0; i2 < grid[i1].length; i2++)
+      for (var i1 = 0; i1 < grid.length; i1++) {
+        for (var i2 = 0; i2 < grid[i1].length; i2++) {
           if (!grid[i1][i2].won) {
             grid[i1][i2].selected = true;
             grid[i1][i2].setColor(blue, blue);
           }
+        }
+      }
     }
   }
 }
