@@ -33,7 +33,7 @@ function setup() {
   menu.mousePressed(goToMenu);
   undo = createButton("Undo");
   undo.position(70, 10);
-  undo.mousePressed(revertGameState);
+  undo.mousePressed(undoGameState);
   menu.hide();
   undo.hide();
   
@@ -295,11 +295,15 @@ function goToMenu() {
   overallWinner = -1;
 }
 
-function revertGameState() {
+function undoGameState() {
   if (gameStates.length > 0) {
     grid = gameStates[gameStates.length-1][0];
     moves = gameStates[gameStates.length-1][1];
-    gameStates.pop();
+    if (gameOver || tie) {
+      gameOver = false;
+      tie = false;
+      overallWinner = -1;
+    }
   }
 }
 
